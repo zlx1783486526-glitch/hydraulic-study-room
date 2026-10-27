@@ -26,9 +26,10 @@
   try { progress = JSON.parse(localStorage.getItem(storeKey) || '{}') || {}; }
   catch { progress = {}; storeAvailable = false; }
 
-  function persist() {
+  function persist(announce=true) {
     try { localStorage.setItem(storeKey, JSON.stringify(progress)); storeAvailable = true; }
     catch { storeAvailable = false; }
+    if (announce) document.dispatchEvent(new Event('hydraulic:progress-changed'));
   }
   function toast(message) {
     const node = $('#toast'); node.textContent = message; node.classList.add('show');
@@ -36,6 +37,7 @@
   }
   function route() {
     const raw = decodeURIComponent((location.hash || '#home').slice(1));
+    if (raw.startsWith('access_token=') || raw.startsWith('error=')) return {path:'home',params:new URLSearchParams()};
     const [path, query=''] = raw.split('?');
     return {path:path || 'home', params:new URLSearchParams(query)};
   }
@@ -81,7 +83,7 @@
       <div class="callout">推荐路径：按章节学习概念 → 做对应选择题 → 分阶段拆解红字大题 → 在错题区重练。原 PDF 的文字层对部分公式与图形提取不完整，请用每题的原页图核对。</div>
       <div class="section-heading"><h2>七章教材</h2><p>每节都有公式、例题、易错点与自检</p></div><div class="chapter-grid">${cards}</div>
       <div class="section-heading"><h2>下一步：红字最重点</h2><a href="#priority">查看全部 19 题 →</a></div><div class="priority-preview">${latest.map(q=>`<a href="#question/${q.id}" class="priority-mini"><span class="meta">★ ${esc(q.typeName)} · 原页 ${q.page}</span><strong>${esc(short(q.prompt,75))}</strong></a>`).join('') || '<div class="empty">红字重点已全部学完，可以去错题区巩固。</div>'}</div>
-      <div class="section-heading"><h2>学习进度</h2></div><div class="card" style="padding:24px">${progressBar()}<p style="font-size:12px;color:var(--muted);margin:12px 0 0">${storeAvailable?'进度保存在当前设备的浏览器中。换设备可用右上角 ⇩ 导出、⇧ 导入。':'当前浏览器未允许本地持久保存；请用右上角导出进度备份。'}</p></div>`;
+      <div class="section-heading"><h2>学习进度</h2></div><div class="card" style="padding:24px">${progressBar()}<p style="font-size:12px;color:var(--muted);margin:12px 0 0">${storeAvailable?'进度先保存在当前浏览器；登录云端后可在电脑和 iPad 自动同步。右上角仍可 ⇩ 导出、⇧ 导入备份。':'当前浏览器未允许本地持久保存；请登录云端同步或用右上角导出进度备份。'}</p></div>`;
   }
   function renderLesson(id) {
     const l=byLesson[id];if(!l){navTo('#home');return;}
@@ -165,7 +167,7 @@
     if(q.reviewedAnswer==='存疑'){stage[id]=3;renderQuestion(id);toast('此题存在歧义，请阅读核对说明。');return;}
     const correct=selected===q.reviewedAnswer.split('').sort().join('');
     const rec=progress[id]||{};
-    progress[id]={...rec,attempts:(rec.attempts||0)+1,reviewed:true,retry:!correct,lastCorrect:correct,lastAnswer:selected,lastFeedback:correct?'答对了。再读一遍每个选项的辨析，确认不是碰巧选中。':`本次选择 ${selected}；请对照推导与勘误，再做一遍。`};
+    progress[id]={...rec,attempts:(rec.attempts||0)+1,reviewed:true,retry:!correct,lastCorrect:correct,lastAnswer:selected,lastFeedback:correct?'答对了。再读一遍每个选项的辨析，确认不是碰巧选中。':`本次选择 ${selected}；请对照推导与勘误，再做一遍。`,updatedAt:Date.now()};
     stage[id]=3;persist();renderQuestion(id);
   }
   function captureDraft(id) {
@@ -176,7 +178,7 @@
   function mark(id,known) {
     captureDraft(id);
     const rec=progress[id]||{};
-    progress[id]={...rec,reviewed:true,retry:!known,lastCorrect:known,draft:drafts[id]||'',lastFeedback:known?'已标记掌握。建议隔天再独立复述步骤。':'已加入错题重练。先回关联章节，再回来重做。'};
+    progress[id]={...rec,reviewed:true,retry:!known,lastCorrect:known,draft:drafts[id]||'',lastFeedback:known?'已标记掌握。建议隔天再独立复述步骤。':'已加入错题重练。先回关联章节，再回来重做。',updatedAt:Date.now()};
     persist();renderQuestion(id);toast(known?'已标记掌握':'已加入错题重练');
   }
   function render() {
@@ -199,7 +201,7 @@
   async function importProgress(file) {
     if(!file)return;
     try {const data=JSON.parse(await file.text());if(data.version!==1||typeof data.progress!=='object'||!data.progress)throw new Error('文件格式不符合学习进度格式');
-      const valid=Object.fromEntries(Object.entries(data.progress).filter(([id,v])=>byId[id]&&v&&typeof v==='object'));
+      const valid=Object.fromEntries(Object.entries(data.progress).filter(([id,v])=>byId[id]&&v&&typeof v==='object').map(([id,v])=>[id,{...v,updatedAt:Number(v.updatedAt)||Date.now()}]));
       progress={...progress,...valid};persist();render();toast(`已导入 ${Object.keys(valid).length} 道题的进度。`);
     } catch(e){toast(`导入失败：${e.message}`);} $('#import-file').value='';
   }
@@ -226,6 +228,29 @@
   $('#export-progress').addEventListener('click',exportProgress);
   $('#import-progress').addEventListener('click',()=>$('#import-file').click());
   $('#import-file').addEventListener('change',e=>importProgress(e.target.files[0]));
+  window.HYDRAULIC_PROGRESS_API = {
+    get:()=>({...progress}),
+    mergeRemote(remote) {
+      const upload=[];
+      for (const [id,record] of Object.entries(remote)) {
+        if (!byId[id] || !record || typeof record!=='object') continue;
+        const local=progress[id];
+        if (!local || (Number(record.updatedAt)||0)>(Number(local.updatedAt)||0)) progress[id]=record;
+      }
+      for (const [id,record] of Object.entries(progress)) {
+        if (!byId[id] || !record || typeof record!=='object') continue;
+        const cloud=remote[id];
+        if (!cloud || (Number(record.updatedAt)||0)>(Number(cloud.updatedAt)||0)) upload.push([id,record]);
+      }
+      persist(false);render();
+      return upload;
+    },
+    clear() {
+      progress={};drafts={};stage={};
+      try {localStorage.removeItem(storeKey);} catch {}
+      render();
+    }
+  };
   $('#menu-button').addEventListener('click',()=>{const sidebar=$('#sidebar');sidebar.classList.toggle('open');$('#menu-button').setAttribute('aria-expanded',sidebar.classList.contains('open'));});
   render();
 })();

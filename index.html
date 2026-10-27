@@ -39,6 +39,7 @@
         <div class="breadcrumb" id="breadcrumb">学习总览</div>
         <div class="top-actions">
           <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="搜索题目或知识点" aria-label="搜索题目或知识点"><kbd>Ctrl K</kbd></label>
+          <button class="cloud-button" id="cloud-account" type="button" aria-label="登录并同步学习进度" hidden>☁ <span>登录同步</span></button>
           <button class="icon-button" id="export-progress" title="导出学习进度" aria-label="导出学习进度">⇩</button>
           <button class="icon-button" id="import-progress" title="导入学习进度" aria-label="导入学习进度">⇧</button>
           <input id="import-file" type="file" accept="application/json,.json" hidden>
@@ -49,11 +50,24 @@
     </div>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="cloud-dialog" class="cloud-dialog" hidden>
+    <section class="cloud-card" role="dialog" aria-modal="true" aria-labelledby="cloud-title">
+      <button class="cloud-close" id="cloud-close" type="button" aria-label="关闭登录窗口">×</button>
+      <h2 id="cloud-title">云端学习进度</h2>
+      <p>用同一个邮箱在电脑和 iPad 登录，做题进度会自动同步。原题与教材仍可直接阅读。</p>
+      <form id="cloud-email-form"><label for="cloud-email">邮箱</label><input id="cloud-email" type="email" autocomplete="email" required placeholder="你的邮箱"><small>请先使用创建云数据库时的邮箱；免费邮件服务仅向项目成员发信。</small><button class="button" type="submit">发送一次性登录链接</button></form>
+      <div id="cloud-signed-in" hidden><p>已登录：<strong id="cloud-user-email"></strong></p><button class="button" id="cloud-sync-now" type="button">立即同步</button><button class="button ghost" id="cloud-sign-out" type="button">退出登录</button></div>
+      <p class="cloud-status" id="cloud-status" role="status" aria-live="polite"></p>
+    </section>
+  </div>
   <div id="image-modal" class="image-modal" hidden><button id="close-image" aria-label="关闭图片">×</button><img id="modal-image" alt="原始习题页放大图"><div id="modal-caption"></div></div>
   <noscript>请开启 JavaScript 以使用题目搜索和互动自测。请连接网络后打开在线学习室。</noscript>
   <script src="assets/lessons.js"></script>
   <script src="assets/questions.js"></script>
   <script src="assets/app.js"></script>
+  <script src="assets/supabase.umd.js"></script>
+  <script src="assets/cloud-config.js"></script>
+  <script src="assets/cloud.js"></script>
 </body>
 </html>
 
