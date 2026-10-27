@@ -18,6 +18,7 @@
   let session = null;
   let syncTimer = null;
   let syncInFlight = null;
+  let sendingLink = false;
 
   button.hidden = false;
 
@@ -113,13 +114,36 @@
   async function sendLink() {
     const email = $('cloud-email').value.trim();
     if (!emailForm.reportValidity()) return;
+    if (/\@gmali\.com$/i.test(email)) {
+      say('邮箱域名似乎写成了 gmali.com。请核对是否应为 gmail.com，再发送。', true);
+      $('cloud-email').focus();
+      return;
+    }
+    if (sendingLink) return;
+    sendingLink = true;
+    const submit = emailForm.querySelector('button[type="submit"]');
+    submit.disabled = true;
     say('正在发送登录邮件…');
-    const redirectTo = `${location.origin}${location.pathname}`;
-    const { error } = await client.auth.signInWithOtp({
-      email, options: { shouldCreateUser: true, emailRedirectTo: redirectTo }
-    });
-    if (error) { say(`发送失败：${error.message}`, true); return; }
-    say('登录链接已发送。请在这台设备上打开邮件并点击链接；也可查看垃圾邮件文件夹。');
+    try {
+      const redirectTo = `${location.origin}${location.pathname}`;
+      const { error } = await client.auth.signInWithOtp({
+        email, options: { shouldCreateUser: true, emailRedirectTo: redirectTo }
+      });
+      if (error) {
+        if (error.status === 429 || /rate limit/i.test(error.message || '')) {
+          say('邮件发送次数已达上限。请约 1 小时后用核对无误的邮箱重试，期间不要连续发送。', true);
+        } else {
+          say(`发送失败：${error.message}`, true);
+        }
+        return;
+      }
+      say('发送请求已被接受。请检查这个邮箱的收件箱、垃圾邮件和拦截记录；收到后在当前设备打开链接。');
+    } catch (error) {
+      say(`发送失败：${error.message || '网络连接异常，请稍后重试。'}`, true);
+    } finally {
+      sendingLink = false;
+      submit.disabled = false;
+    }
   }
 
   button.addEventListener('click', openDialog);
