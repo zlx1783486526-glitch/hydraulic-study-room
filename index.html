@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#122d3d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="液压学习室">
+  <title>液压习题学习室 · iPad 教材与逐题解析</title>
+  <meta name="description" content="液压习题零基础教材、282道逐题解析、红字重点、自测与勘误。适合 iPad 使用。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M8 25h10l5-10 6 18 4-8h7"/><circle cx="8" cy="25" r="2"/><circle cx="40" cy="25" r="2"/></svg>
+        </div>
+        <div><strong>液压学习室</strong><small>习题 · 教材 · 自测</small></div>
+      </div>
+      <nav id="main-nav" class="main-nav">
+        <a href="#home" data-route="home"><span>⌂</span> 学习总览</a>
+        <a href="#priority" data-route="priority"><span>★</span> 红字最重点 <b id="priority-count">19</b></a>
+        <a href="#bank" data-route="bank"><span>▦</span> 全部习题</a>
+        <a href="#mistakes" data-route="mistakes"><span>↺</span> 错题重练</a>
+        <a href="#issues" data-route="issues"><span>!</span> 勘误与存疑</a>
+      </nav>
+      <div class="nav-heading">零基础教材</div>
+      <nav id="lesson-nav" class="lesson-nav" aria-label="教材章节"></nav>
+      <div class="sidebar-foot">
+        <div class="offline-pill"><span></span> iPad 适配 · 在线学习室</div>
+        <a href="原始习题.pdf" target="_blank" rel="noopener">查看原始 PDF ↗</a>
+      </div>
+    </aside>
+    <div class="page-column">
+      <header class="topbar">
+        <button id="menu-button" class="icon-button mobile-only" aria-label="打开导航" aria-expanded="false">☰</button>
+        <div class="breadcrumb" id="breadcrumb">学习总览</div>
+        <div class="top-actions">
+          <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="搜索题目或知识点" aria-label="搜索题目或知识点"><kbd>Ctrl K</kbd></label>
+          <button class="icon-button" id="export-progress" title="导出学习进度" aria-label="导出学习进度">⇩</button>
+          <button class="icon-button" id="import-progress" title="导入学习进度" aria-label="导入学习进度">⇧</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </header>
+      <main id="app" tabindex="-1"></main>
+      <footer class="site-footer">依据所附《液压与气压传动习题库及参考答案》整理。题目与原答案保留原貌；勘误按公式和原图另行标注。图形符号核对参考 <a href="https://www.iso.org/standard/60184.html" target="_blank" rel="noopener">ISO 1219-1</a>。</footer>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="image-modal" class="image-modal" hidden><button id="close-image" aria-label="关闭图片">×</button><img id="modal-image" alt="原始习题页放大图"><div id="modal-caption"></div></div>
+  <noscript>请开启 JavaScript 以使用题目搜索和互动自测。请连接网络后打开在线学习室。</noscript>
+  <script src="assets/lessons.js"></script>
+  <script src="assets/questions.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
+
