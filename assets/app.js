@@ -2,6 +2,7 @@
   'use strict';
   const questions = window.HYDRAULIC_QUESTIONS || [];
   const lessons = window.HYDRAULIC_LESSONS || [];
+  const animations = window.HYDRAULIC_ANIMATIONS;
   const byId = Object.fromEntries(questions.map(q => [q.id, q]));
   const byLesson = Object.fromEntries(lessons.map(l => [l.id, l]));
   const typeNames = {fill:'填空题',judge:'判断题',choice:'选择题',short:'简答题',calc:'计算题',circuit:'回路分析',draw:'绘制回路'};
@@ -84,6 +85,7 @@
       <div class="section-heading"><h2>七章教材</h2><p>每节都有公式、例题、易错点与自检</p></div><div class="chapter-grid">${cards}</div>
       <div class="section-heading"><h2>下一步：红字最重点</h2><a href="#priority">查看全部 19 题 →</a></div><div class="priority-preview">${latest.map(q=>`<a href="#question/${q.id}" class="priority-mini"><span class="meta">★ ${esc(q.typeName)} · 原页 ${q.page}</span><strong>${esc(short(q.prompt,75))}</strong></a>`).join('') || '<div class="empty">红字重点已全部学完，可以去错题区巩固。</div>'}</div>
       <div class="section-heading"><h2>学习进度</h2></div><div class="card" style="padding:24px">${progressBar()}<p style="font-size:12px;color:var(--muted);margin:12px 0 0">${storeAvailable?'进度先保存在当前浏览器；登录云端后可在电脑和 iPad 自动同步。右上角仍可 ⇩ 导出、⇧ 导入备份。':'当前浏览器未允许本地持久保存；请登录云端同步或用右上角导出进度备份。'}</p></div>`;
+    $('#app .callout')?.insertAdjacentHTML('afterend','<div class="section-heading"><h2>动态油路实验室</h2><a href="#animations">查看全部 4 个演示 →</a></div><a class="animation-teaser" href="#animations"><span>▶</span><div><strong>把油流、阀位和缸运动连起来看</strong><small>齿轮泵 · 差动缸 · 先导溢流阀 · 原题 28 回路</small></div><b>开始实验 →</b></a>');
   }
   function renderLesson(id) {
     const l=byLesson[id];if(!l){navTo('#home');return;}
@@ -93,6 +95,16 @@
       <nav class="concept-map" aria-label="本章概念图"><span class="concept-label">本章概念图</span><div class="concept-flow">${l.sections.map((s,i)=>`<button type="button" data-action="jump-lesson" data-section="${i+1}"><b>${String(i+1).padStart(2,'0')}</b><span>${esc(s.title)}</span></button>`).join('<span class="concept-arrow" aria-hidden="true">→</span>')}</div></nav>
       <div class="lesson-stack">${l.sections.map((s,i)=>`<section class="lesson-section" id="lesson-section-${i+1}"><span class="index">LESSON ${i+1} / ${l.sections.length}</span><h2>${esc(s.title)}</h2><p>${esc(s.body)}</p><div class="formula-card">${esc(s.formula)}</div><div class="lesson-columns"><div class="lesson-note"><strong>算一个例子</strong>${esc(s.example)}</div><div class="lesson-note warn"><strong>容易错在这里</strong>${esc(s.mistake)}</div></div><details class="mini-check"><summary>先自己答：${esc(s.check[0])}</summary><p>${esc(s.check[1])}</p></details></section>`).join('')}</div>
       <section class="lesson-related"><h2>用本章知识做题</h2><p style="font-size:12px;color:var(--muted)">红字题排在最前。完整题库可按知识点筛选。</p><div class="question-list">${related.slice(0,9).map(qRow).join('')}</div><div style="margin-top:15px"><a class="button secondary" href="#bank?topic=${id}">查看本章全部 ${related.length} 道题 →</a></div></section>`;
+    const placements=animations?.lessonScene[id] || {};
+    for (const [section,sceneId] of Object.entries(placements)) {
+      document.getElementById('lesson-section-'+section)?.insertAdjacentHTML('beforeend',animations.card(sceneId));
+    }
+    animations?.mountAll();
+  }
+  function renderAnimations() {
+    $('#breadcrumb').textContent='动态油路实验室';
+    $('#app').innerHTML='<a class="back-link" href="#home">← 返回总览</a><div class="eyebrow">HYDRAULIC MOTION LAB</div><h1 class="page-title">动态油路实验室</h1><p class="page-subtitle">点选动作阶段，或自动播放。蓝色虚线代表压力油流，橙色虚线代表回油或先导油；器件剖面是教学示意，原题回路保留原图。</p><div class="demo-stack">'+['gear','diff','relief','circuit28'].map(scene=>animations.card(scene)).join('')+'</div>';
+    animations?.mountAll();
   }
   function listConfig(r) {
     const key=r.path;
@@ -159,6 +171,14 @@
     $('#breadcrumb').textContent=`${q.typeName} / ${label(q)}`;
     $('#app').innerHTML=`<a class="back-link" href="#${q.priority?'priority':'bank'}">← 返回${q.priority?'红字重点':'题库'}</a><div class="q-layout"><div class="q-main"><article class="q-card ${q.priority?'priority':''}"><div class="q-head"><div class="badges"><span class="badge">${esc(q.typeName)}</span><span class="badge neutral">${esc(topicName(q.topic))}</span>${q.priority?'<span class="badge red">★ 原 PDF 红字重点</span>':''}${q.needsReview?'<span class="badge amber">勘误 / 存疑</span>':''}</div><h1>${esc(label(q))}</h1><div class="source">原始习题 ${originalPages} · ${q.hasFigure?'含图示 · ':''}${rec.reviewed?'已学习':'待学习'}</div></div><div class="q-content"><div class="prompt">${text(q.prompt)}</div>${figure}<form id="answer-form">${options}</form>${feedback}${controls}${stageHtml}${stepsHtml}${answerHtml}</div></article></div>
       <aside class="q-aside"><div class="aside-card"><h3>本题学习路径</h3><p>① 独立尝试　② 提示　③ 推导　④ 核对原答案。${q.priority?'这道红字题建议重做两遍。':''}</p>${progressBar(questions.filter(x=>x.topic===q.topic))}</div><div class="aside-card"><h3>关联知识点</h3><a href="#lesson/${q.topic}">${esc(topicName(q.topic))} →</a><a href="#bank?topic=${q.topic}">同知识点练习 →</a>${q.needsReview?'<a href="#issues">查看勘误清单 →</a>':''}</div></aside></div>`;
+    const sceneId=animations?.questionScene[id];
+    if (sceneId) {
+      const disclosure=document.createElement('details');
+      disclosure.className='demo-disclosure';
+      disclosure.innerHTML='<summary>▶ 查看本题相关动态演示（建议先独立作答）</summary>'+animations.card(sceneId,true);
+      $('#app .q-content').appendChild(disclosure);
+      animations.mountAll();
+    }
   }
   function submit(id) {
     const q=byId[id],form=$('#answer-form');if(!q||!form)return;
@@ -186,6 +206,7 @@
     if(r.path==='home')renderHome();
     else if(r.path.startsWith('lesson/'))renderLesson(r.path.split('/')[1]);
     else if(r.path.startsWith('question/'))renderQuestion(r.path.split('/')[1]);
+    else if(r.path==='animations')renderAnimations();
     else if(['bank','priority','mistakes'].includes(r.path))renderList(r);
     else if(r.path==='issues')renderIssues();
     else navTo('#home');
@@ -212,6 +233,7 @@
   $('#priority-count').textContent=questions.filter(q=>q.priority).length;
   window.addEventListener('hashchange',render);
   document.addEventListener('click',e=>{
+    if(animations?.handleClick(e.target)) return;
     const btn=e.target.closest('[data-action]');if(btn){e.preventDefault();const id=btn.dataset.id;switch(btn.dataset.action){
       case 'submit':submit(id);break;case 'hint':captureDraft(id);stage[id]=Math.max(stage[id]||0,1);renderQuestion(id);break;
       case 'steps':captureDraft(id);stage[id]=Math.max(stage[id]||0,2);renderQuestion(id);break;
